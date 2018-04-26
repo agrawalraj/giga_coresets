@@ -16,7 +16,7 @@ from run_methods import do_all
 # The following runs RFM-GIGA, RFM-JL, and RFM on  
 
 if __name__ == "__main__":
-	sparse_mat = load_svmlight_file('../data/large_dataset')
+	sparse_mat = load_svmlight_file('../data/covtype.libsvm.binary.scale')
 	X = sparse_mat[0].todense()
 	y = sparse_mat[1] 
 	y = np.array(y, dtype=np.int32)
