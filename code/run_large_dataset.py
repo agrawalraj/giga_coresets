@@ -22,4 +22,4 @@ if __name__ == "__main__":
 	y = np.array(y, dtype=np.int32)
 	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 0)
 	result = do_all([100, 250, 500, 750, 1000], X_train, y_train, X_test, y_test, 1, .25, J_up=5000, V=20000, CV=True)
-	pickle.dump(result, open( "../results/large_dataset/large_dataset_5k_20k_iter_0.p".format(i), "wb" ) )
+	pickle.dump(result, open( "../results/large_dataset/large_dataset_5k_20k_iter_0.p", "wb" ) )
