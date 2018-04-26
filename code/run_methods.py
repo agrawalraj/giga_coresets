@@ -10,8 +10,8 @@ from sklearn.svm import LinearSVC
 from sklearn.svm import SVC
 from sklearn.model_selection import GridSearchCV
 
-from .giga_RFM import sample_mat, GIGA_construct_w
-from .utilities import approx_kern_error_simple, approx_kern_error_avg
+from giga_RFM import sample_mat, GIGA_construct_w
+from utilities import approx_kern_error_simple, approx_kern_error_avg
 
 # Author: Raj Agrawal
 # Date: 04/26/18

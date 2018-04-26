@@ -12,34 +12,34 @@ import bayesiancoresets as bc
 # https://github.com/trevorcampbell/bayesian-coresets
 
 def sample_mat(N, V):
-	"""
-	Input: 
-	N: Total numnber of datapoints
-	V: Number of datapoint pairs sampled
+    """
+    Input: 
+    N: Total numnber of datapoints
+    V: Number of datapoint pairs sampled
 
-	Output:
-	list of two numpy arrays, where first element is a list of the indices of the rows 
-	and second a list of the indices of the columns
-	"""
+    Output:
+    list of two numpy arrays, where first element is a list of the indices of the rows 
+    and second a list of the indices of the columns
+    """
     comp1 = np.random.choice(np.arange(N), V)
     comp2 = np.random.choice(np.arange(N), V)
     return (comp1, comp2)
 
 def GIGA_construct_w(X, sampler, J, V, M, um='fast'):
-	"""
-	Input:
-	X: N x d numpy data matrix
-	sampler: sklearn object to sample random features (e.g. RBFSampler)
-	J: "Up" projection dimension
-	V: Number of data pairs to randomly sample 
-	M: "down" projection dimension i.e. number of random features
-	Note: The number of features could be less than M
+    """
+    Input:
+    X: N x d numpy data matrix
+    sampler: sklearn object to sample random features (e.g. RBFSampler)
+    J: "Up" projection dimension
+    V: Number of data pairs to randomly sample 
+    M: "down" projection dimension i.e. number of random features
+    Note: The number of features could be less than M
 
-	Output:
-	w_fw: weights of length J with at most M non-zero entries
-	w_active: weights of only the non-zero components
-	sampler: sampler used to construct the random features
-	"""
+    Output:
+    w_fw: weights of length J with at most M non-zero entries
+    w_active: weights of only the non-zero components
+    sampler: sampler used to construct the random features
+    """
     N = X.shape[0]
     rand_data_pairs = sample_mat(N, V)
     unique_pts = sorted(list(set(rand_data_pairs[0]).union(set(rand_data_pairs[1]))))

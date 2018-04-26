@@ -7,7 +7,7 @@ import pickle
 import os
 import numpy as np
 
-from .run_methods import do_all
+from run_methods import do_all
 
 # Author: Raj Agrawal
 # Date: 04/26/18
