@@ -6,18 +6,22 @@ import numpy as np
 from sklearn import random_projection
 from sklearn.kernel_approximation import RBFSampler
 from sklearn.metrics.pairwise import pairwise_kernels, rbf_kernel
-from sklearn.preprocessing import LabelEncoder
-from sklearn.svm import LinearSVC, LinearSVR
-from sklearn.svm import SVC, SVR
-from sklearn.cross_validation import train_test_split
+from sklearn.svm import LinearSVC
+from sklearn.svm import SVC
 from sklearn.model_selection import GridSearchCV
 
 from .giga_RFM import sample_mat, GIGA_construct_w
 from .utilities import approx_kern_error_simple, approx_kern_error_avg
 
+# Author: Raj Agrawal
+# Date: 04/26/18
+
+# The following runs RFM-GIGA, RFM-JL, and RFM on a given dataset and measures
+# test set classification performance, kernel approximation error, cpu time, and wall clock
+# time
+
 def do_all(J_grid, X_train, y_train, X_test, y_test, C, gamma, J_up=5000, V=20000, normalize=False, CV=False):
-    wall_times = {'RFM': [], 'RFM_GIGA': [], 'RFM_JL': [],
-             'nyst': [], 'nyst_GIGA': [], 'nyst_JL': []}
+    wall_times = {'RFM': [], 'RFM_GIGA': [], 'RFM_JL': []}
     cpu_times = {'RFM': [], 'RFM_GIGA': [], 'RFM_JL': []}
     class_perform = {'RFM': [], 'RFM_GIGA': [], 'RFM_JL': []}
     kern_errors = {'RFM': [], 'RFM_GIGA': [], 'RFM_JL': []}
@@ -63,6 +67,7 @@ def do_all(J_grid, X_train, y_train, X_test, y_test, C, gamma, J_up=5000, V=2000
         elapsed_time_clock = time.perf_counter() - t_clock
         num_feats = len(w_active)
         kern_acc = approx_kern_error_avg(X_train, X_tr, kern_fn, nsamps=min(5000, X_train.shape[0]))
+        kern_errors['RFM_GIGA'].append(kern_acc)
         print('RFM_GIGA for J = {4} - had clock time = {0}, cpu time = {3}, kernel error = {1}, class acc = {2}'.format(elapsed_time_clock, kern_acc, acc, elapsed_time_cpu, num_feats))
         print('RFM GIGA Sparsity = {0}'.format(len(w_active)))
         sparsites['RFM'].append(num_feats)
@@ -83,6 +88,7 @@ def do_all(J_grid, X_train, y_train, X_test, y_test, C, gamma, J_up=5000, V=2000
         elapsed_time_cpu = time.process_time() - t_cpu
         elapsed_time_clock = time.perf_counter() - t_clock
         kern_acc = approx_kern_error_avg(X_train, X_full_tr[:, :num_feats], kern_fn, nsamps=min(500, X_train.shape[0]))
+        kern_errors['RFM'].append(kern_acc)
         print('RFM J = {4} - had clock time = {0}, cpu time = {3}, kernel error = {1}, class acc = {2}'.format(elapsed_time_clock, kern_acc, acc, elapsed_time_cpu, num_feats))
         wall_times['RFM'].append(elapsed_time_clock)
         cpu_times['RFM'].append(elapsed_time_cpu)
@@ -99,12 +105,10 @@ def do_all(J_grid, X_train, y_train, X_test, y_test, C, gamma, J_up=5000, V=2000
         elapsed_time_cpu = time.process_time() - t_cpu
         elapsed_time_clock = time.perf_counter() - t_clock
         kern_acc = approx_kern_error_avg(X_train, X_tr, kern_fn, nsamps=min(500, X_train.shape[0]))
+        kern_errors['RFM_JL'].append(kern_acc)
         print('RFM_JL for J = {4} - had clock time = {0}, cpu time = {3}, kernel error = {1}, class acc = {2}'.format(elapsed_time_clock, kern_acc, acc, elapsed_time_cpu, num_feats))
         wall_times['RFM_JL'].append(elapsed_time_clock)
         cpu_times['RFM_JL'].append(elapsed_time_cpu)
         class_perform['RFM_JL'].append(acc)
-    return wall_times, cpu_times, class_perform, sparsites, cv_params
-
-
-
+    return wall_times, cpu_times, class_perform, kern_errors, sparsites, cv_params
 
