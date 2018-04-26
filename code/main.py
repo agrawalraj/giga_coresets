@@ -27,7 +27,7 @@ if __name__ == "__main__":
 	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 0)
 
 	results = []
-	for i in range(1):
+	for i in range(20):
 		print('Adult iteration = ' + str(i))
 		result = do_all([100, 250, 500, 750, 1000], X_train, y_train, X_test, y_test, 1, .25, J_up=5000, V=20000)
 		pickle.dump(result, open( "../results/adult/adult_5k_20k_iter_{}.p".format(i), "wb" ) )
@@ -41,7 +41,7 @@ if __name__ == "__main__":
 	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 0)
 
 	results = []
-	for i in range(1):
+	for i in range(20):
 		print('Sensorless iteration = ' + str(i))
 		result = do_all([100, 250, 500, 750, 1000], X_train, y_train, X_test, y_test, 25, 5.75, J_up=5000, V=20000)
 		pickle.dump(result, open( "../results/sensorless/sensorless_5k_20k_iter_{}.p".format(i), "wb" ) )
@@ -56,7 +56,7 @@ if __name__ == "__main__":
 	y_test = np.array(y_test, dtype=np.int32)
 
 	results = []
-	for i in range(1):
+	for i in range(20):
 		print('Human iteration = ' + str(i))
 		result = do_all([100, 250, 500, 750, 1000], X_train, y_train, X_test, y_test, 1, .1, J_up=5000, V=20000)
 		pickle.dump(result, open( "../results/human_activity/human_activity_5k_20k_iter_{}.p".format(i), "wb" ) )
@@ -71,7 +71,7 @@ if __name__ == "__main__":
 	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 0)
 
 	results_mnist = []
-	for i in range(1):
+	for i in range(20):
 		print('iteration = ' + str(i))
 		result = do_all([100, 250, 500, 750, 1000], X_train, y_train, X_test, y_test, 5, .05, J_up=5000, V=20000)
 		pickle.dump(result, open( "../results/mnist/mnist_5k_20k_iter_{}.p".format(i), "wb" ) )
