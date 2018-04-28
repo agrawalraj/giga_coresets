@@ -6,6 +6,7 @@ import numpy as np
 from sklearn import random_projection
 from sklearn.kernel_approximation import RBFSampler
 from sklearn.metrics.pairwise import pairwise_kernels, rbf_kernel
+from sklearn.utils.extmath import safe_sparse_dot
 from sklearn.svm import LinearSVC
 from sklearn.svm import SVC
 from sklearn.model_selection import GridSearchCV
@@ -20,7 +21,7 @@ from utilities import approx_kern_error_simple, approx_kern_error_avg
 # test set classification performance, kernel approximation error, cpu time, and wall clock
 # time
 
-def GIGA_transform(X, random_weights, random_offset, w):
+def GIGA_transform(X, J, random_weights, random_offset, w):
     """Apply the approximate feature map to X.
     Parameters
     ----------
@@ -33,10 +34,10 @@ def GIGA_transform(X, random_weights, random_offset, w):
     w_active = w[mask]
     giga_weights = random_weights[:, mask]
     giga_offset = random_offset[mask]
-    projection = X.dot(giga_weights)
+    projection = safe_sparse_dot(X, giga_weights)
     projection += giga_offset
     np.cos(projection, projection)
-    projection *= np.sqrt(2.) / np.sqrt(random_offset.shape[0])
+    projection *= np.sqrt(2.) / np.sqrt(J)
     projection = np.multiply(projection, np.sqrt(w_active))
     return projection
 
@@ -78,8 +79,8 @@ def do_all(J_grid, X_train, y_train, X_test, y_test, C, gamma, J_up=5000, V=2000
         t_cpu = time.process_time()
         t_clock = time.perf_counter()
         w, w_active, _, _ = GIGA_construct_w(X_train, sampler_up, J_up, V, J)
-        X_tr = GIGA_transform(X_train, sampler_up.random_weights_, sampler_up.random_offset_, w)
-        X_tst = GIGA_transform(X_test, sampler_up.random_weights_, sampler_up.random_offset_, w)
+        X_tr = GIGA_transform(X_train, J_up, sampler_up.random_weights_, sampler_up.random_offset_, w)
+        X_tst = GIGA_transform(X_test, J_up, sampler_up.random_weights_, sampler_up.random_offset_, w)
         clf = LinearSVC(loss='squared_hinge', penalty="l2", C=C, dual=False)
         clf.fit(X_tr, y_train)
         acc = clf.score(X_tst, y_test)
@@ -101,8 +102,8 @@ def do_all(J_grid, X_train, y_train, X_test, y_test, C, gamma, J_up=5000, V=2000
         sampler.fit(X_train) 
         w_rfm = np.zeros(J_up)
         w_rfm[:num_feats] = 1
-        X_tr = GIGA_transform(X_train, sampler_up.random_weights_, sampler_up.random_offset_, w_rfm) 
-        X_tst = GIGA_transform(X_test, sampler_up.random_weights_, sampler_up.random_offset_, w_rfm) 
+        X_tr = GIGA_transform(X_train, num_feats, sampler_up.random_weights_, sampler_up.random_offset_, w_rfm) 
+        X_tst = GIGA_transform(X_test, num_feats, sampler_up.random_weights_, sampler_up.random_offset_, w_rfm) 
         clf = LinearSVC(loss='squared_hinge', penalty="l2", C=C, dual=False)
         clf.fit(X_tr, y_train)
         acc = clf.score(X_tst, y_test)
