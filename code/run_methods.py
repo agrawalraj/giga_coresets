@@ -9,7 +9,6 @@ from sklearn.metrics.pairwise import pairwise_kernels, rbf_kernel
 from sklearn.svm import LinearSVC
 from sklearn.svm import SVC
 from sklearn.model_selection import GridSearchCV
-from sklearn.utils.extmath import safe_sparse_dot
 
 from giga_RFM import sample_mat, GIGA_construct_w
 from utilities import approx_kern_error_simple, approx_kern_error_avg
@@ -31,10 +30,14 @@ def GIGA_transform(X, random_weights, random_offset, w):
     X_new : array-like, shape (n_samples, n_components)
     """
     mask = w > 0
-    projection = safe_sparse_dot(X, random_weights[:, mask])
-    projection += random_offset_[mask]
+    w_active = w[mask]
+    giga_weights = random_weights[:, mask]
+    giga_offset = random_offset[mask]
+    projection = X.dot(giga_weights)
+    projection += giga_offset
     np.cos(projection, projection)
     projection *= np.sqrt(2.) / np.sqrt(random_offset.shape[0])
+    projection = np.multiply(projection, np.sqrt(w_active))
     return projection
 
 def do_all(J_grid, X_train, y_train, X_test, y_test, C, gamma, J_up=5000, V=20000, normalize=False, CV=False):
@@ -68,15 +71,15 @@ def do_all(J_grid, X_train, y_train, X_test, y_test, C, gamma, J_up=5000, V=2000
     kern_fn = lambda x: rbf_kernel(x, gamma=gamma)
     sampler_up = RBFSampler(gamma=gamma, n_components=J_up)
     sampler_up.fit(X_train)
-    X_full_tr = sampler_up.transform(X_train)
-    X_full_tst = sampler_up.transform(X_test)
+    # X_full_tr = sampler_up.transform(X_train)
+    # X_full_tst = sampler_up.transform(X_test)
     for J in J_grid:
         # Do for RFM-GIGA
         t_cpu = time.process_time()
         t_clock = time.perf_counter()
         w, w_active, _, _ = GIGA_construct_w(X_train, sampler_up, J_up, V, J)
-        X_tr = X_full_tr[:, np.abs(w) > 0] * np.sqrt(w_active)
-        X_tst = X_full_tst[:, np.abs(w) > 0] * np.sqrt(w_active)
+        X_tr = GIGA_transform(X_train, sampler_up.random_weights_, sampler_up.random_offset_, w)
+        X_tst = GIGA_transform(X_test, sampler_up.random_weights_, sampler_up.random_offset_, w)
         clf = LinearSVC(loss='squared_hinge', penalty="l2", C=C, dual=False)
         clf.fit(X_tr, y_train)
         acc = clf.score(X_tst, y_test)
@@ -96,36 +99,37 @@ def do_all(J_grid, X_train, y_train, X_test, y_test, C, gamma, J_up=5000, V=2000
         t_clock = time.perf_counter()
         sampler = RBFSampler(gamma=gamma, n_components=num_feats)
         sampler.fit(X_train) 
-        X_del = sampler.transform(X_train) # JUST FOR TIMING DONT USE / WANT SAME Rand FEATS
-        X_del = sampler.transform(X_test) # JUST FOR TIMING DONT USE / WANT SAME Rand FEATS
-        X_del = 0 
-        clf = LinearSVC(loss='squared_hinge', penalty="l2", C=C, dual=False)
-        clf.fit(X_full_tr[:, :num_feats], y_train)
-        acc = clf.score(X_full_tst[:, :num_feats], y_test)
-        elapsed_time_cpu = time.process_time() - t_cpu
-        elapsed_time_clock = time.perf_counter() - t_clock
-        kern_acc = approx_kern_error_avg(X_train, X_full_tr[:, :num_feats], kern_fn, nsamps=min(500, X_train.shape[0]))
-        kern_errors['RFM'].append(kern_acc)
-        print('RFM J = {4} - had clock time = {0}, cpu time = {3}, kernel error = {1}, class acc = {2}'.format(elapsed_time_clock, kern_acc, acc, elapsed_time_cpu, num_feats))
-        wall_times['RFM'].append(elapsed_time_clock)
-        cpu_times['RFM'].append(elapsed_time_cpu)
-        class_perform['RFM'].append(acc)
-        # Do for RFM-JL 
-        t_cpu = time.process_time()
-        t_clock = time.perf_counter()
-        transformer = random_projection.GaussianRandomProjection(n_components=num_feats)
-        X_tr = transformer.fit_transform(X_full_tr)
-        X_tst = transformer.transform(X_full_tst)
+        w_rfm = np.zeros(J_up)
+        w_rfm[:num_feats] = 1
+        X_tr = GIGA_transform(X_train, sampler_up.random_weights_, sampler_up.random_offset_, w_rfm) 
+        X_tst = GIGA_transform(X_test, sampler_up.random_weights_, sampler_up.random_offset_, w_rfm) 
         clf = LinearSVC(loss='squared_hinge', penalty="l2", C=C, dual=False)
         clf.fit(X_tr, y_train)
         acc = clf.score(X_tst, y_test)
         elapsed_time_cpu = time.process_time() - t_cpu
         elapsed_time_clock = time.perf_counter() - t_clock
         kern_acc = approx_kern_error_avg(X_train, X_tr, kern_fn, nsamps=min(500, X_train.shape[0]))
-        kern_errors['RFM_JL'].append(kern_acc)
-        print('RFM_JL for J = {4} - had clock time = {0}, cpu time = {3}, kernel error = {1}, class acc = {2}'.format(elapsed_time_clock, kern_acc, acc, elapsed_time_cpu, num_feats))
-        wall_times['RFM_JL'].append(elapsed_time_clock)
-        cpu_times['RFM_JL'].append(elapsed_time_cpu)
-        class_perform['RFM_JL'].append(acc)
+        kern_errors['RFM'].append(kern_acc)
+        print('RFM J = {4} - had clock time = {0}, cpu time = {3}, kernel error = {1}, class acc = {2}'.format(elapsed_time_clock, kern_acc, acc, elapsed_time_cpu, num_feats))
+        wall_times['RFM'].append(elapsed_time_clock)
+        cpu_times['RFM'].append(elapsed_time_cpu)
+        class_perform['RFM'].append(acc)
+        # Do for RFM-JL 
+        # t_cpu = time.process_time()
+        # t_clock = time.perf_counter()
+        # transformer = random_projection.GaussianRandomProjection(n_components=num_feats)
+        # X_tr = transformer.fit_transform(X_full_tr)
+        # X_tst = transformer.transform(X_full_tst)
+        # clf = LinearSVC(loss='squared_hinge', penalty="l2", C=C, dual=False)
+        # clf.fit(X_tr, y_train)
+        # acc = clf.score(X_tst, y_test)
+        # elapsed_time_cpu = time.process_time() - t_cpu
+        # elapsed_time_clock = time.perf_counter() - t_clock
+        # kern_acc = approx_kern_error_avg(X_train, X_tr, kern_fn, nsamps=min(500, X_train.shape[0]))
+        # kern_errors['RFM_JL'].append(kern_acc)
+        # print('RFM_JL for J = {4} - had clock time = {0}, cpu time = {3}, kernel error = {1}, class acc = {2}'.format(elapsed_time_clock, kern_acc, acc, elapsed_time_cpu, num_feats))
+        # wall_times['RFM_JL'].append(elapsed_time_clock)
+        # cpu_times['RFM_JL'].append(elapsed_time_cpu)
+        # class_perform['RFM_JL'].append(acc)
     return wall_times, cpu_times, class_perform, kern_errors, sparsites, cv_params
 
