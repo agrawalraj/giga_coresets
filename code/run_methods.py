@@ -9,6 +9,7 @@ from sklearn.metrics.pairwise import pairwise_kernels, rbf_kernel
 from sklearn.svm import LinearSVC
 from sklearn.svm import SVC
 from sklearn.model_selection import GridSearchCV
+from sklearn.utils.extmath import safe_sparse_dot
 
 from giga_RFM import sample_mat, GIGA_construct_w
 from utilities import approx_kern_error_simple, approx_kern_error_avg
@@ -19,6 +20,22 @@ from utilities import approx_kern_error_simple, approx_kern_error_avg
 # The following runs RFM-GIGA, RFM-JL, and RFM on a given dataset and measures
 # test set classification performance, kernel approximation error, cpu time, and wall clock
 # time
+
+def GIGA_transform(X, random_weights, random_offset, w):
+    """Apply the approximate feature map to X.
+    Parameters
+    ----------
+    X : UPDATE
+    Returns
+    -------
+    X_new : array-like, shape (n_samples, n_components)
+    """
+    mask = w > 0
+    projection = safe_sparse_dot(X, random_weights[:, mask])
+    projection += random_offset_[mask]
+    np.cos(projection, projection)
+    projection *= np.sqrt(2.) / np.sqrt(random_offset.shape[0])
+    return projection
 
 def do_all(J_grid, X_train, y_train, X_test, y_test, C, gamma, J_up=5000, V=20000, normalize=False, CV=False):
     wall_times = {'RFM': [], 'RFM_GIGA': [], 'RFM_JL': []}
